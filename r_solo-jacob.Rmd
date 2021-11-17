@@ -1,0 +1,179 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+1. Read in `districts.csv` into a tibble named `districts`. How many rows and columns does it contain?
+```{r}
+library(tidyverse)
+```
+
+```{r}
+districts <- read_csv('data/districts.csv')
+```
+The tibble has 146 rows and 27 columns
+
+2.Notice that the first row corresponds to the whole State of Tennessee. Remove this row and save the result back to `districts`.
+```{r}
+districts <- districts %>% slice(-c(1))
+```
+3. How many districts have a proficiency rate of at least 80% for both alg_1 and eng_1?
+```{r}
+districts %>%
+  filter(eng_1 >= 80, alg_1 >= 80)
+```
+13 Districts have a proficiency rate of at least 80% in english 1 and algebra 1
+
+4. How many districts have a proviciency rate less than 50% for either alg_1 or eng_1?
+```{r}
+districts %>%
+  filter(alg_1 >= 50 | eng_1 >= 50)
+```
+130 districts have a proficiency rate of 50% in either alg_1 or eng_1
+
+5. Which district has the lowest graduation rate?
+```{r}
+districts %>%
+  filter(districts['grad'] == min(districts['grad'], na.rm = TRUE))
+```
+Tennessee school for the Blind has the lowest graduation rate. However, this is not necessarily a district:
+
+```{r}
+districts %>%
+  filter(districts[,'grad'] == min(districts['grad'] %>% filter(system_name != 'Tenn School for Blind'), na.rm = TRUE))
+```
+The achievement school district has the lowest graduation rate.
+
+6. Which district has the highest dropout rate?
+```{r}
+districts %>%
+  filter(dropout == max(districts['dropout'], na.rm = TRUE))
+```
+The Achievement school district has the highest dropout rate
+
+7. Within the Mid Cumberland region, which district has the highest ACT composite?
+```{r}
+districts %>%
+  filter(region == 'Mid Cumberland')%>%
+  arrange(desc(act_composite))
+```
+Williamson county had the highest ACT composite in the district.
+
+8. Create a histogram showing the distribution of graduation rates. What can you say about this distribution?
+```{r}
+districts %>%
+  ggplot(aes(x = grad)) + 
+  geom_histogram(fill = 'red', color = 'black')
+```
+Data is heavily left skewed, with the vast majority of districts having a graduation rate of over 75%.
+
+9. Create a scatter plot to compare alg_1 proficiency rates to alg_2 rates. What do you notice? Facet this plot by region. Does anything stand out when you facet the plots?
+```{r}
+districts%>%
+  ggplot(aes(x = alg_1, y = alg_2)) +
+  geom_point() +
+  geom_smooth(method = 'lm')
+```
+There is a strong positive correlation between the proficiency rates in alge_1 and the proficiency rates in alg_2
+
+```{r}
+districts%>%
+  drop_na()%>%
+  ggplot(aes(x = alg_1, y = alg_2)) +
+  geom_point() +
+  geom_smooth(method = 'lm') +
+  facet_wrap(~region)
+```
+The Southeast and Upper cumberland have the weakest correlations between alg_1 and alg_2 proficiency. The Upper Cumberland looks to have a slightly negative correlation even.
+
+10. Create a bar chart showing the total enrollment by region. Which region has the highest total enrollment? Which has the smallest?
+```{r}
+districts%>%
+  drop_na()%>%
+  ggplot(aes(x = region, y = enrollment)) +
+  geom_col()
+```
+```{r}
+districts %>%
+  drop_na()%>%
+  group_by(region)%>%
+  summarize(sumenrollment = sum(enrollment))
+```
+The Mid Cumberland Region has the highest enrollment. The Upper Cumberland region has the lowest enrollment.
+
+11. When creating this bar chart you may have noticed that some districts have missing enrollment values. For how many districts is this the case?
+```{r}
+sum(is.na(x = districts[,'enrollment']))
+```
+4 districts have NA values for enrollment.
+
+12. What is the mean graduation rate across all districts? What might be wrong with using just the regular mean to assess average graduation rates?
+```{r}
+districts %>%
+  drop_na()%>%
+  summarize(meangradrate = mean(grad))
+```
+The average of the rates is 91%. However this is not the correct number, because We would need to do a weighted average because different districts have different amounts of students. # COME BACK TO CALCULATE WEIGHTED AVERAGE.
+
+13. Redo the previous question but use a weighted average (`weighted.mean`) graduation across all districts, weighing by enrollment. How much does this change your answer? Can you explain using the data the reason for the big change from using the mean?
+
+```{r}
+districts %>%
+  drop_na()%>%
+  summarize(weightedmeangradrate = weighted.mean(x = grad, w = enrollment))
+```
+```{r}
+districts %>%
+  drop_na() %>%
+  filter(grad >95) %>%
+  summarize(meanenrollment95 = mean(enrollment))
+```
+```{r}
+districts %>%
+  drop_na() %>%
+  summarize(meanenrollmentall = mean(enrollment))
+```
+The graduation rate is lower when the weighted mean is used. This is likely because there are a few small districts with few enrolled students but a high graduation rate. For districts with a graduation rate of 95% or higher, the mean enrollment was 3586, whereas the mean enrollment for the whole dataset was 7636. Lower enrollments have a higher graduation rate and thus affect the average. The weighted mean is much more accurate. 
+
+14. Create a boxplot showing enrollment rates per region. Does anything stand out?
+```{r}
+districts %>%
+  drop_na()%>%
+  ggplot(aes(x = region, y = enrollment, color = region)) +
+  geom_boxplot()
+```
+The Southwest/Memphis has the largest district, but not the largest median. The largest median is in the Mid Cumberland region. The least varied enrolloment is in the Northwest region, which is a region with a small median enrollment.
+
+15. Create a boxplot showing graduation rates per region. Does anything stand out?
+```{r}
+districts %>%
+  drop_na() %>%
+  ggplot(aes(x = region, y = grad, color = region)) +
+  geom_boxplot()
+```
+The northwest region has the highest median graduation rate. The Southwest/Memphis region is the most varied region in graduation rate. The Southeast and Northwest regions are the only regions with a district that has a 100% graduation rate. 
+
+16. Find the weighted average of graduation rates by region using enrollment as weights. Compare the results you get for the weighted average to what you see from the boxplots. Can you explain any discrepancy?
+```{r}
+districts %>%
+  drop_na() %>%
+  group_by(region) %>%
+  summarize(weightedmeangrad = weighted.mean(x = grad, w = enrollment))
+```
+The mid Cumberland region has a higher median than average. This is because of a large outlier in the mid Cumberland region. The First TN region is least varied and therefore the median is close to the weighted mean. #COME BACK TO THIS QUESTION
+
+17. For many districts, values for `alg_2` are lower than for `alg_1`. Create a histogram showing the distribution of differences (`alg_1` - `alg_2`). Which school had the largest drop from `alg_1` to `alg_2`? For what percentage of schools is it true that `alg_2` is larger than `alg_1`? Is there a similar dropoff for `eng_2` and `eng_3`?
+
+```{r}
+gather(districts %>% select(alg_1,alg_2)) %>%
+  ggplot(aes(x = value, fill = key)) +
+  geom_histogram(alpha = 0.6) +
+  scale_fill_discrete(labels = c('Algebra 1','Algebra 2'))
+```
+
+```{r}
+districts %>%
+  mutate(alg_difference = alg_1 - alg_2) %>%
+  ggplot(aes(x = alg_difference)) +
+  geom_histogram()
+```
+
