@@ -176,4 +176,103 @@ districts %>%
   ggplot(aes(x = alg_difference)) +
   geom_histogram()
 ```
+```{r}
+districts %>%
+  mutate(alg_difference = alg_1 - alg_2) %>%
+  arrange(desc(alg_difference))
+```
+Pickett county had the highest drop off from algebra 1 to algebra 2.
+```{r}
+districts %>%
+  mutate(alg_difference = alg_1 - alg_2) %>%
+  filter(alg_difference < 0) %>%
+  summarize(alg_2_higher_count = n())
+```
+```{r}
+18 / 146
+```
+12 percent of schools had higher proficiency in alg 2 than alg 1
+```{r}
+districts %>%
+  mutate(alg_difference = alg_1 - alg_2) %>%
+  summarize(alg_difference_mean = mean(alg_difference, na.rm = TRUE))
+```
+
+
+```{r}
+districts %>%
+  mutate(eng_difference = eng_2 - eng_3) %>%
+  ggplot(aes(x = eng_difference)) +
+  geom_histogram()
+  
+  
+```
+
+
+```{r}
+districts %>%
+  mutate(eng_difference = eng_2 - eng_3)
+```
+
+```{r}
+districts %>%
+  mutate(eng_difference = eng_2 - eng_3) %>%
+  filter(eng_difference < 0) %>%
+  summarize(eng_2_higher_count = n())
+```
+The trend is more severe for english. Only one out of 146 districts did better in English 3 than english 2. The average difference for eng 2 and 3 was 20, while it was only 13 for algebra 1 and 2.
+
+```{r}
+districts %>%
+  mutate(eng_difference = eng_2 - eng_3) %>%
+  summarize(eng_difference_mean= mean(eng_difference, na.rm = TRUE))
+```
+
+18. You may have noticed that a lot of rows are missing values. Which district has the largest number of missing values? What do you notice about schools that have a lot of missing values?
+```{r}
+districts %>%
+  mutate(num_na = apply(districts, MARGIN = 1, function(x) sum(is.na(x)))) %>%
+  arrange(desc(num_na)) %>%view()
+  
+```
+West TN school for the deaf has the largest number of NA values. Most of these districts with a high number of missing values are either from a certain school, or from city schools, rather than a county district.
+
+19. Find the correlation between graduation rate and all other variables. Create a horizontal bar chart showing these correlations. Make sure that your plot is ordered by correlation values. What do you notice from these correlations?
+```{r}
+correlation_df <-districts %>%
+  select(where(is.numeric), -system) %>%
+  cor(x = districts['grad'] , use = 'complete.obs') %>%
+  as_tibble() %>%
+  rownames_to_column() %>%
+  pivot_longer(-rowname, 'class', 'cor') %>%
+  arrange(desc(value))
+```
+
+
+```{r}
+correlation_df %>%
+  
+  ggplot(aes(x = reorder(x= class, X = value), y = value, fill = (value < 0))) +
+  geom_col() +
+  coord_flip()
+```
+The strongest correlation is a negative correlation between dropout and grad percentage, which makes sense logically. There is a surprisingly strong correlation between passing english 3 and graduation, as well as science.
+
+20. Create a scatterplot for `grad` vs. `suspended`. Does what you see make sense given your answer from the previous part?
+```{r}
+districts %>%
+  ggplot(aes(x = suspended, y = grad)) +
+  geom_point() +
+  geom_smooth(method = 'lm')
+```
+This result does line up with the previous plot, as there is a moderate negative correlation between suspensions and graduation.
+
+21. Create a linear regression model using `lm` with target variable `grad` and predictor variable `suspended`. What R^2 value does this model have? What is the interpretation of this number?
+```{r}
+suspended_grad_linear_model <- lm(grad ~ suspended, data = districts)
+
+summary(suspended_grad_linear_model)
+```
+
+
 
