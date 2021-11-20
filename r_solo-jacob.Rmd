@@ -5,6 +5,7 @@ output: html_notebook
 1. Read in `districts.csv` into a tibble named `districts`. How many rows and columns does it contain?
 ```{r}
 library(tidyverse)
+library(readxl)
 ```
 
 ```{r}
@@ -262,8 +263,7 @@ The strongest correlation is a negative correlation between dropout and grad per
 ```{r}
 districts %>%
   ggplot(aes(x = suspended, y = grad)) +
-  geom_point() +
-  geom_smooth(method = 'lm')
+  geom_point() 
 ```
 This result does line up with the previous plot, as there is a moderate negative correlation between suspensions and graduation.
 
@@ -274,5 +274,113 @@ suspended_grad_linear_model <- lm(grad ~ suspended, data = districts)
 summary(suspended_grad_linear_model)
 ```
 
+
+22. Add the regression line to your scatterplot using `geom_smooth` with `method='lm'`. How do you feel about the regression line after seeing it plotted on the scatterplot?
+```{r}
+districts %>%
+  ggplot(aes(x = suspended, y = grad)) +
+  geom_point() +
+  geom_smooth(method = 'lm')
+```
+
+The regression line makes the negative correlation more clear. The negative correlation can be seen a little bit with just the scatterplot, but the line makes it more clear.
+
+23. Read in the school-level testing data for 2014, available [here](https://www.tn.gov/content/dam/tn/education/data/data_2014_school_base.xlsx). You might find the readxl library useful for this task. If you use this library, be sure to look at the `na` argument for the `read_excel` function.
+```{r}
+testing_data <- read_excel('data/data_2014_school_base.xlsx',
+                           sheet = 'Sheet1',
+                           range = cell_rows(1:425657),
+                           na = c('*','**'))
+```
+
+24. How many schools have at least 20 percent of students below bsc for Algebra I? Which districts do these schools belong to?
+```{r}
+testing_data %>%
+  filter(subject == 'Algebra I',
+         pct_below_bsc >= 20,
+         grade == 'All Grades', 
+         subgroup == 'All Students') %>%
+  drop_na(pct_below_bsc) %>%
+  summarize(num_systems = n_distinct(system_name), num_schools = n_distinct(school_name))
+```
+69 schools across 30 districts have at least 20% below basic in Algebra 1.
+
+```{r}
+testing_data %>%
+  filter(subject == 'Algebra I',
+         pct_below_bsc >= 20,
+         grade == 'All Grades', 
+         subgroup == 'All Students') %>%
+  drop_na(pct_below_bsc)%>%
+  group_by(system_name) %>%
+  summarize(num_schools_below_basic_alg1 = n()) %>%
+  arrange(desc(num_schools_below_basic_alg1))
+```
+Shelby County has the most schools with 20% or more below basic in algebra 2. The top 5 counties are counties near cities (Memphis, Nashville, Chattanooga, and Knoxville)
+
+25. How many schools have at least 20 percent of students below bsc for _both_ Algebra I and English I?
+
+```{r}
+testing_data %>%
+  filter(subject == c('Algebra I','English I'),
+         pct_below_bsc >= 20,
+         grade == 'All Grades', 
+         subgroup == 'All Students') %>% 
+  group_by(school_name)%>%
+  summarize(num = n()) %>%
+  filter(num > 1)
+```
+Only one school, Jellico High School, has 20% below basic in both t
+```{r}
+testing_data %>%
+  filter(subject == c('Algebra I','English I'),
+         pct_below_bsc >= 20,
+         grade == 'All Grades', 
+         subgroup == 'All Students',
+         school_name == 'Central High School')
+```
+Only one school, Jellico High School, has 20% below basic in both English I and Alg_1. Another Method to show this:
+
+
+```{r}
+testing_data %>%
+  filter(subject == c('Algebra I','English I'),
+         grade == 'All Grades', 
+         subgroup == 'All Students') %>%
+  select(system_name, school_name, pct_below_bsc, subject ) %>%
+  filter(pct_below_bsc >=20) %>%
+  group_by(school_name) %>%
+  summarize(num_subjects = n_distinct(subject)) %>%
+  filter(num_subjects > 1)
+```
+26. Which grade has the highest pct_adv for Algebra I? Plot the average pct_adv per grade level as a bar chart. Make sure that the bars are ordered by grade level.
+
+```{r}
+all_grades_adv_alg_avg <- testing_data %>%
+  filter(subject == 'Algebra I',
+         grade == 'All Grades', 
+         subgroup == 'All Students') %>%
+  summarize(mean = mean(pct_adv, na.rm = TRUE))
+  
+testing_data %>%
+  filter(subject == 'Algebra I',
+         ((grade !=  '6') & (grade != '7') & (grade != 'Missing Grade') & (grade != 'All Grades')) , 
+         subgroup == 'All Students')%>%
+  group_by(grade) %>%
+  summarize(avg_alg_pct_adv = mean(pct_adv, na.rm = TRUE)) %>%
+  ggplot(aes(x = reorder(x = grade, X = as.numeric(grade)), y = avg_alg_pct_adv, fill = grade)) +
+  geom_col() +
+  geom_hline(yintercept = all_grades_adv_alg_avg[['mean']], color = 'red') +
+  geom_text(aes(x = 5, y = all_grades_adv_alg_avg[['mean']], label = "All Grades Average", vjust = -1))
+```
+
+8th grade has the highest pct_adv in Algebra I.
+
+27. Find the correlation between pct_adv for Algebra I and pct_adv for Algebra II by school. Create a scatterplot showing Algebra II scores vs. Algebra I scores by school.
+```{r}
+testing_data %>%
+  filter(subject == c('Algebra I', 'Algebra II')) %>%
+  select(system_name, school_name, subject, pct_adv) 
+```
 
 
