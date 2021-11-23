@@ -27,9 +27,9 @@ districts %>%
 4. How many districts have a proviciency rate less than 50% for either alg_1 or eng_1?
 ```{r}
 districts %>%
-  filter(alg_1 >= 50 | eng_1 >= 50)
+  filter(alg_1 <= 50 | eng_1 <= 50)
 ```
-130 districts have a proficiency rate of 50% in either alg_1 or eng_1
+8 districts have a proficiency rate of 50% in either alg_1 or eng_1
 
 5. Which district has the lowest graduation rate?
 ```{r}
@@ -74,7 +74,7 @@ districts%>%
   geom_point() +
   geom_smooth(method = 'lm')
 ```
-There is a strong positive correlation between the proficiency rates in alge_1 and the proficiency rates in alg_2
+There is a strong positive correlation between the proficiency rates in alg_1 and the proficiency rates in alg_2
 
 ```{r}
 districts%>%
@@ -97,7 +97,8 @@ districts%>%
 districts %>%
   drop_na()%>%
   group_by(region)%>%
-  summarize(sumenrollment = sum(enrollment))
+  summarize(sumenrollment = sum(enrollment)) %>%
+  arrange(desc(sumenrollment))
 ```
 The Mid Cumberland Region has the highest enrollment. The Upper Cumberland region has the lowest enrollment.
 
@@ -142,7 +143,7 @@ districts %>%
   ggplot(aes(x = region, y = enrollment, color = region)) +
   geom_boxplot()
 ```
-The Southwest/Memphis has the largest district, but not the largest median. The largest median is in the Mid Cumberland region. The least varied enrolloment is in the Northwest region, which is a region with a small median enrollment.
+The Southwest/Memphis has the largest single  district, but not the largest median. The largest median is in the Mid Cumberland region. The least varied enrolloment is in the Northwest region, which is a region with a small median enrollment.
 
 15. Create a boxplot showing graduation rates per region. Does anything stand out?
 ```{r}
@@ -160,7 +161,7 @@ districts %>%
   group_by(region) %>%
   summarize(weightedmeangrad = weighted.mean(x = grad, w = enrollment))
 ```
-The mid Cumberland region has a higher median than average. This is because of a large outlier in the mid Cumberland region. The First TN region is least varied and therefore the median is close to the weighted mean. #COME BACK TO THIS QUESTION
+The mid Cumberland region has a higher median than average. This is because of a large outlier in the mid Cumberland region. The First TN region is least varied and therefore the median is close to the weighted mean. 
 
 17. For many districts, values for `alg_2` are lower than for `alg_1`. Create a histogram showing the distribution of differences (`alg_1` - `alg_2`). Which school had the largest drop from `alg_1` to `alg_2`? For what percentage of schools is it true that `alg_2` is larger than `alg_1`? Is there a similar dropoff for `eng_2` and `eng_3`?
 
@@ -168,14 +169,18 @@ The mid Cumberland region has a higher median than average. This is because of a
 gather(districts %>% select(alg_1,alg_2)) %>%
   ggplot(aes(x = value, fill = key)) +
   geom_histogram(alpha = 0.6) +
-  scale_fill_discrete(labels = c('Algebra 1','Algebra 2'))
+  scale_fill_discrete(labels = c('Algebra 1','Algebra 2')) +
+  xlab("Proficiency") +
+  labs(title = "Distribution of Proficiency Rates in Algebra I and II")
 ```
 
 ```{r}
 districts %>%
   mutate(alg_difference = alg_1 - alg_2) %>%
   ggplot(aes(x = alg_difference)) +
-  geom_histogram()
+  geom_histogram()+
+  labs(title = "Distribution of the Difference between Proficiency in Algebra I and II") +
+  xlab("Difference Between Algebra I and II Proficency")
 ```
 ```{r}
 districts %>%
@@ -204,8 +209,9 @@ districts %>%
 districts %>%
   mutate(eng_difference = eng_2 - eng_3) %>%
   ggplot(aes(x = eng_difference)) +
-  geom_histogram()
-  
+  geom_histogram() +
+  labs(title = "Distribution of the Difference between Proficiency in English II and III") +
+  xlab("Difference Between English II and III Proficency")
   
 ```
 
@@ -252,10 +258,12 @@ correlation_df <-districts %>%
 
 ```{r}
 correlation_df %>%
-  
   ggplot(aes(x = reorder(x= class, X = value), y = value, fill = (value < 0))) +
   geom_col() +
-  coord_flip()
+  coord_flip() +
+  labs(title = "Corellations with Graduation Rate") +
+  ylab("Correlation") +
+  xlab("Variable")
 ```
 The strongest correlation is a negative correlation between dropout and grad percentage, which makes sense logically. There is a surprisingly strong correlation between passing english 3 and graduation, as well as science.
 
@@ -263,7 +271,10 @@ The strongest correlation is a negative correlation between dropout and grad per
 ```{r}
 districts %>%
   ggplot(aes(x = suspended, y = grad)) +
-  geom_point() 
+  geom_point() +
+  ylab("Graduation Rate") +
+  xlab("Suspended Percentage") +
+  labs(title = "Graduation Rate vs. Percentage Suspended")
 ```
 This result does line up with the previous plot, as there is a moderate negative correlation between suspensions and graduation.
 
@@ -273,14 +284,17 @@ suspended_grad_linear_model <- lm(grad ~ suspended, data = districts)
 
 summary(suspended_grad_linear_model)
 ```
-
+The R^2 value is 0.0795.
 
 22. Add the regression line to your scatterplot using `geom_smooth` with `method='lm'`. How do you feel about the regression line after seeing it plotted on the scatterplot?
 ```{r}
 districts %>%
   ggplot(aes(x = suspended, y = grad)) +
   geom_point() +
-  geom_smooth(method = 'lm')
+  geom_smooth(method = 'lm') +
+  ylab("Graduation Rate") +
+  xlab("Suspended Percentage") +
+  labs(title = "Graduation Rate vs. Percentage Suspended")
 ```
 
 The regression line makes the negative correlation more clear. The negative correlation can be seen a little bit with just the scatterplot, but the line makes it more clear.
@@ -330,7 +344,7 @@ testing_data %>%
   summarize(num = n()) %>%
   filter(num > 1)
 ```
-Only one school, Jellico High School, has 20% below basic in both t
+
 ```{r}
 testing_data %>%
   filter(subject == c('Algebra I','English I'),
@@ -339,7 +353,7 @@ testing_data %>%
          subgroup == 'All Students',
          school_name == 'Central High School')
 ```
-Only one school, Jellico High School, has 20% below basic in both English I and Alg_1. Another Method to show this:
+There are 3 Central High Schools, so, only one school, Jellico High School, has 20% below basic in both English I and Alg_1. Another Method to show this:
 
 
 ```{r}
@@ -371,16 +385,198 @@ testing_data %>%
   ggplot(aes(x = reorder(x = grade, X = as.numeric(grade)), y = avg_alg_pct_adv, fill = grade)) +
   geom_col() +
   geom_hline(yintercept = all_grades_adv_alg_avg[['mean']], color = 'red') +
-  geom_text(aes(x = 5, y = all_grades_adv_alg_avg[['mean']], label = "All Grades Average", vjust = -1))
+  geom_text(aes(x = 5, y = all_grades_adv_alg_avg[['mean']], label = "All Grades Average", vjust = -1)) +
+  xlab('Grade') +
+  ylab("Average Percentage Advanced in Algebra I") +
+  labs(title = "Average Percentage of Advanced scores in Algebra I by Grade")
 ```
 
 8th grade has the highest pct_adv in Algebra I.
 
 27. Find the correlation between pct_adv for Algebra I and pct_adv for Algebra II by school. Create a scatterplot showing Algebra II scores vs. Algebra I scores by school.
 ```{r}
-testing_data %>%
-  filter(subject == c('Algebra I', 'Algebra II')) %>%
-  select(system_name, school_name, subject, pct_adv) 
+alg1_and_alg2 <- testing_data %>%
+  filter(subject == c('Algebra I', 'Algebra II'), 
+         grade == 'All Grades', 
+         subgroup == 'All Students') %>%
+  select(system_name, school_name, subject, pct_adv) %>%
+  pivot_wider(names_from = subject, values_from = pct_adv)%>%
+  group_by(school_name) %>%
+  drop_na()
 ```
 
+```{r}
+cor(x = alg1_and_alg2['Algebra I'], y = alg1_and_alg2['Algebra II'])
+```
+The correlation is 0.589
+```{r}
+alg1_and_alg2 %>%
+  ggplot(aes(x = `Algebra I`, y = `Algebra II`)) +
+  geom_point() +
+  ylab("Algebra II Advanced Percentage") +
+  xlab("Algeba I Advanced Percentage") +
+  labs(title = "Advanced Algebra II Scores vs. Advanced Algebra I Scores")
+```
 
+28. Find all schools in Rutherford County that have "High School" in their name. For these schools, create a chart (your choice) showing the differences in pct_below_bsc, pct_bsc, pct_prof, and pct_adv for Algebra I when looking across all subgroups and grades.
+```{r}
+testing_data %>%
+  filter(system_name == 'Rutherford County', grepl('High School', school_name), subject == 'Algebra I') %>%
+  pivot_longer(cols = 14:17, names_to = "type" , values_to = "percentage") %>%
+  select(system_name, school_name, grade, type, percentage) %>%
+  filter(grade== c(9,10)) %>%
+  group_by(school_name) %>%
+  ggplot(aes(x = grade, y = percentage)) +
+  geom_col(aes(fill = type),  position = 'dodge' ) +
+  facet_wrap(~school_name)
+  
+  
+```
+
+29. I claim that smaller schools do a better job preparing students for Algebra I standardized tests. Find the average number of valid tests (a proxy for the school size) for schools where the pct_prof_adv for Algebra I is greater than 95. Compare this to the average number of valid tests for all schools. In light of this result, how does my claim look?
+
+```{r}
+testing_data %>%
+  filter(subject == "Algebra I",
+         pct_prof_adv > 95,
+         grade == "All Grades",
+         subgroup == "All Students") %>%
+  summarize(mean_num_valid = mean(valid_tests))
+```
+
+```{r}
+testing_data %>%
+  filter(subject == "Algebra I",
+         grade == "All Grades",
+         subgroup == "All Students") %>%
+  summarize(mean_num_valid = mean(valid_tests))
+```
+
+This is a valid assumption, based off of the results, because on average, schools with high proficiency In Algebra I have 48 valid tests on average, while all schools have an average of 129 valid tests.
+
+30. I also claim that smaller schools do a worse job preparing students for Algebra I standardized tests. Find the average number of valid tests (a proxy for the school size) for schools where the pct_prof_adv for Algebra I is less than 25. Compare this to the average number of valid tests for all schools. In light of this result, how does my claim look now?
+
+```{r}
+testing_data %>%
+  filter(subject == "Algebra I",
+         pct_prof_adv < 25,
+         grade == "All Grades",
+         subgroup == "All Students") %>%
+  summarize(mean_num_valid = mean(valid_tests))
+```
+the average for all schools is 129, while the average for schools with below 25% proficient and advanced is 62. This also supports this claim.
+
+31. Create a scatterplot showing pct_prov_adv vs. valid_tests. Can you use this to explain the result for numbers 26 and 27?
+```{r}
+testing_data %>%
+  filter(subject == "Algebra I",
+         grade == "All Grades",
+         subgroup == "All Students") %>%
+  ggplot(aes(x = valid_tests, y = pct_prof_adv)) +
+  geom_point() +
+  ylab("Percentage of proficient or Advanced Tests") +
+  labs(title = "Percentage of Proficient or Advanced Algebra I Tests vs. Number of Valid Tests ")
+  
+```
+There seems to be an overall upward trend. However, at the low range of tests, there is quite a bit of variability, as some schools in the 0-100 range had 100%, while some had zero. The amount of variability in proficient and advanced test score percentages decreases as the number of valid tests increases, interestingly.
+
+Extra Exploration
+What are the Differences between EL students and NON EL Students?
+```{r}
+testing_data %>%
+  filter(grade == "All Grades",
+         (subgroup == "English Language Learners") | (subgroup == "Non-English Language Learners")) %>%
+  group_by(subgroup)%>%
+  ggplot(aes(x = subject, y = pct_prof_adv)) +
+  geom_boxplot()+
+  facet_wrap(~subgroup,ncol = 1, nrow =  2)
+```
+
+```{r}
+testing_data %>%
+  filter(grade == "All Grades",
+         (subgroup == "Economically Disadvantaged") | (subgroup == "Non-Economically Disadvantaged")) %>%
+  group_by(subgroup)%>%
+  ggplot(aes(x = subject, y = pct_prof_adv)) +
+  geom_boxplot()+
+  facet_wrap(~subgroup,ncol = 1, nrow =  2)
+```
+
+```{r}
+testing_data %>%
+  filter(grade == "All Grades",
+         subgroup == "Non-Economically Disadvantaged") %>%
+  group_by(subgroup)%>%
+  ggplot(aes(x = subject, y = pct_prof_adv)) +
+  geom_boxplot()
+```
+
+Are there any districts/schools in which economically disadvantaged students are outperforming non-economically disadvantaged Students?
+```{r}
+testing_data %>%
+  filter(grade == "All Grades",
+         (subgroup == "Economically Disadvantaged") | (subgroup == "Non-Economically Disadvantaged")) %>%
+  select(1:9, pct_prof_adv) %>%
+  group_by(school_name, subject, subgroup) %>%
+  summarize(mean_pct_prof_adv = mean(pct_prof_adv, na.rm = TRUE)) %>%
+  pivot_wider(names_from = subgroup, values_from = mean_pct_prof_adv) %>%
+  drop_na() %>%
+  rename(economically_dis = 'Economically Disadvantaged', non_economically_dis = 'Non-Economically Disadvantaged') %>%
+  filter(non_economically_dis < economically_dis)
+```
+There are 541 schools where economically disadvantaged kids outperform Non-Economically Disadvantaged kids.
+
+
+```{r}
+testing_data %>%
+  filter(grade == "All Grades",
+         (subgroup == "Economically Disadvantaged") | (subgroup == "Non-Economically Disadvantaged")) %>%
+  select(1:9, pct_prof_adv) %>%
+  group_by(school_name, subject, subgroup) %>%
+  summarize(mean_pct_prof_adv = mean(pct_prof_adv, na.rm = TRUE)) %>%
+  pivot_wider(names_from = subgroup, values_from = mean_pct_prof_adv) %>%
+  drop_na() %>%
+  rename(economically_dis = 'Economically Disadvantaged', non_economically_dis = 'Non-Economically Disadvantaged') %>%
+  mutate(diff = non_economically_dis - economically_dis) %>%
+  ggplot(aes(x = diff)) +
+  geom_histogram(fill = 'blue', color = 'black') +
+  xlab("Difference between Economically Disadvantaged Studens and Non-Economically Disadvantaged Students") +
+  labs(title = 'Distribution of Differences between Economically Disadvantaged Studens and Non-Economically Disadvantaged Students')
+```
+This is an interesting distribution, as the vast majority of schools fall be
+```{r}
+testing_data %>%
+  filter(grade == "All Grades",
+         (subgroup == "Economically Disadvantaged") | (subgroup == "Non-Economically Disadvantaged")) %>%
+  select(1:9, pct_prof_adv) %>%
+  group_by(school_name, subject, subgroup) %>%
+  summarize(mean_pct_prof_adv = mean(pct_prof_adv, na.rm = TRUE)) %>%
+  pivot_wider(names_from = subgroup, values_from = mean_pct_prof_adv) %>%
+  drop_na() %>%
+  rename(economically_dis = 'Economically Disadvantaged', non_economically_dis = 'Non-Economically Disadvantaged') %>%
+  mutate(diff = non_economically_dis - economically_dis) %>%
+  ggplot(aes(x = non_economically_dis, y = economically_dis)) +
+  geom_point(aes(color = subject), alpha = 0.6) +
+  geom_smooth(method = 'lm') +
+  xlab('Non-Economically Disadvantaged Students Proficiency Percentage') +
+  ylab('Economically Disadvantaged Students Proficiency Percentage') +
+  labs(title = 'Proficiency Percentages of Economically Disadvantged vs. Non-Economically Disadvantaged Students' )
+```
+
+Schools that perform better overall tend to have both groups perform better overall. History seems to be the best subject for both groups, which was also apparent in the boxplot.
+
+```{r}
+testing_data %>%
+  filter(grade == "All Grades",
+         (subgroup == "Economically Disadvantaged") | (subgroup == "Non-Economically Disadvantaged")) %>%
+  select(1:9, valid_tests) %>%
+  group_by(system_name, subject, subgroup) %>%
+  summarize(sum_valid_tests = sum(valid_tests, na.rm = TRUE)) %>%
+  pivot_wider(names_from = subgroup, values_from = sum_valid_tests) %>%
+  drop_na() %>%
+  rename(economically_dis = 'Economically Disadvantaged', non_economically_dis = 'Non-Economically Disadvantaged') %>%
+  mutate(percentage_econ_disadv = (economically_dis/(economically_dis + non_economically_dis)*100)) %>%
+  arrange(desc(percentage_econ_disadv))
+  
+```
+The Top 5 Systems with the smallest proportion of economically disadvantaged students in certain subjects are Franklin City, Williamson County, Paris, Dayton, and Oak Ridge. The top 5 systems with the largest proportion of economically disadvantaged students in certain subjects are Humboldt, Achievement, Scott County, Grundy County, and Bledsoe County.
