@@ -15,7 +15,7 @@ The tibble has 146 rows and 27 columns
 
 2.Notice that the first row corresponds to the whole State of Tennessee. Remove this row and save the result back to `districts`.
 ```{r}
-districts <- districts %>% slice(-c(1))
+districts <- districts %>% filter(system_name != "State of Tennessee")
 ```
 3. How many districts have a proficiency rate of at least 80% for both alg_1 and eng_1?
 ```{r}
@@ -78,7 +78,7 @@ There is a strong positive correlation between the proficiency rates in alg_1 an
 
 ```{r}
 districts%>%
-  drop_na()%>%
+  drop_na(alg_1, alg_2)%>%
   ggplot(aes(x = alg_1, y = alg_2)) +
   geom_point() +
   geom_smooth(method = 'lm') +
@@ -89,13 +89,13 @@ The Southeast and Upper cumberland have the weakest correlations between alg_1 a
 10. Create a bar chart showing the total enrollment by region. Which region has the highest total enrollment? Which has the smallest?
 ```{r}
 districts%>%
-  drop_na()%>%
+  drop_na(enrollment)%>%
   ggplot(aes(x = region, y = enrollment)) +
   geom_col()
 ```
 ```{r}
 districts %>%
-  drop_na()%>%
+  drop_na(enrollment)%>%
   group_by(region)%>%
   summarize(sumenrollment = sum(enrollment)) %>%
   arrange(desc(sumenrollment))
@@ -111,7 +111,7 @@ sum(is.na(x = districts[,'enrollment']))
 12. What is the mean graduation rate across all districts? What might be wrong with using just the regular mean to assess average graduation rates?
 ```{r}
 districts %>%
-  drop_na()%>%
+  drop_na(grad)%>%
   summarize(meangradrate = mean(grad))
 ```
 The average of the rates is 91%. However this is not the correct number, because We would need to do a weighted average because different districts have different amounts of students. # COME BACK TO CALCULATE WEIGHTED AVERAGE.
@@ -120,18 +120,18 @@ The average of the rates is 91%. However this is not the correct number, because
 
 ```{r}
 districts %>%
-  drop_na()%>%
-  summarize(weightedmeangradrate = weighted.mean(x = grad, w = enrollment))
+  drop_na(grad,enrollment) %>%
+  summarize(weightedmeangradrate = weighted.mean(x = grad, w = enrollment, na.rm = TRUE))
 ```
 ```{r}
 districts %>%
-  drop_na() %>%
+  drop_na(grad,enrollment) %>%
   filter(grad >95) %>%
   summarize(meanenrollment95 = mean(enrollment))
 ```
 ```{r}
 districts %>%
-  drop_na() %>%
+  drop_na(grad,enrollment) %>%
   summarize(meanenrollmentall = mean(enrollment))
 ```
 The graduation rate is lower when the weighted mean is used. This is likely because there are a few small districts with few enrolled students but a high graduation rate. For districts with a graduation rate of 95% or higher, the mean enrollment was 3586, whereas the mean enrollment for the whole dataset was 7636. Lower enrollments have a higher graduation rate and thus affect the average. The weighted mean is much more accurate. 
@@ -139,7 +139,7 @@ The graduation rate is lower when the weighted mean is used. This is likely beca
 14. Create a boxplot showing enrollment rates per region. Does anything stand out?
 ```{r}
 districts %>%
-  drop_na()%>%
+  drop_na(region, enrollment)%>%
   ggplot(aes(x = region, y = enrollment, color = region)) +
   geom_boxplot()
 ```
@@ -148,7 +148,7 @@ The Southwest/Memphis has the largest single  district, but not the largest medi
 15. Create a boxplot showing graduation rates per region. Does anything stand out?
 ```{r}
 districts %>%
-  drop_na() %>%
+  drop_na(grad) %>%
   ggplot(aes(x = region, y = grad, color = region)) +
   geom_boxplot()
 ```
@@ -157,7 +157,7 @@ The northwest region has the highest median graduation rate. The Southwest/Memph
 16. Find the weighted average of graduation rates by region using enrollment as weights. Compare the results you get for the weighted average to what you see from the boxplots. Can you explain any discrepancy?
 ```{r}
 districts %>%
-  drop_na() %>%
+  drop_na(grad,enrollment) %>%
   group_by(region) %>%
   summarize(weightedmeangrad = weighted.mean(x = grad, w = enrollment))
 ```
